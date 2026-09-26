@@ -54,6 +54,7 @@ const
 var
   hSettings, hList, hLabel, hInterval, hSec, hAdd, hDel, hUp, hDown, hOk, hCancel: HWND;
   hIconPlus, hIconMinus, hIconUp, hIconDown: HICON;
+  hBoldFont: HFONT = 0;  // шрифт заголовков таблицы
   hEditor: HWND = 0;
   EditorOldProc: WNDPROC;
   EdItem, EdSub: Integer;
@@ -337,6 +338,45 @@ begin
   SelectRow(NewIdx);
 end;
 
+type
+  TRuleArray = array of TRule;
+
+// Порядок процессов — по первому упоминанию, внутри процесса — по возрастанию порога памяти
+// (при равных порогах сохраняется прежний порядок)
+function SortedRules(const Src: array of TRule): TRuleArray;
+var
+  I, J, K, First, Count: Integer;
+  Done: array of Boolean;
+  Tmp: TRule;
+begin
+  Result := nil;
+  SetLength(Result, Length(Src));
+  SetLength(Done, Length(Src));
+  Count := 0;
+  for I := 0 to High(Src) do
+  begin
+    if Done[I] then
+      Continue;
+    First := Count;
+    for J := I to High(Src) do
+      if not Done[J] and (lstrcmpiW(PWideChar(Src[J].Name), PWideChar(Src[I].Name)) = 0) then
+      begin
+        Done[J] := True;
+        // Вставка в отсортированную часть группы
+        Result[Count] := Src[J];
+        K := Count;
+        while (K > First) and (Result[K - 1].MinMemMB > Result[K].MinMemMB) do
+        begin
+          Tmp := Result[K - 1];
+          Result[K - 1] := Result[K];
+          Result[K] := Tmp;
+          Dec(K);
+        end;
+        Inc(Count);
+      end;
+  end;
+end;
+
 procedure OnOk;
 var
   V: Integer;
@@ -348,7 +388,7 @@ begin
   if V > MaxIntervalSec then
     V := MaxIntervalSec;
 
-  Rules := Copy(Work);
+  Rules := SortedRules(Work);
   IntervalSec := V;
   if not (SaveRules and SaveIntervalSec) then
   begin
@@ -382,6 +422,7 @@ var
   ICC: TINITCOMMONCONTROLSEX;
   Tip: HWND;
   I: Integer;
+  LF: LOGFONTW;
 begin
   ICC.dwSize := SizeOf(ICC);
   ICC.dwICC := ICC_WIN95_CLASSES;
@@ -433,7 +474,11 @@ begin
   hCancel := CreateWindowExW(0, 'BUTTON', 'Отмена',
     WS_CHILD or WS_VISIBLE or WS_TABSTOP, 0, 0, 0, 0, Wnd, ID_CANCEL, HINSTANCE, nil);
 
-  SetFont(hList);
+  SetFont(hList);  // список передаёт свой шрифт и шапке, поэтому жирный ставим после него
+  GetObjectW(HFONT(GetStockObject(DEFAULT_GUI_FONT)), SizeOf(LF), @LF);
+  LF.lfWeight := FW_BOLD;
+  hBoldFont := CreateFontIndirectW(LF);
+  SendMessageW(HWND(SendMessageW(hList, LVM_GETHEADER, 0, 0)), WM_SETFONT, WPARAM(hBoldFont), 1);
   SetFont(hLabel);
   SetFont(hInterval);
   SetFont(hSec);
@@ -556,6 +601,9 @@ begin
         DestroyIcon(hIconMinus);
         DestroyIcon(hIconUp);
         DestroyIcon(hIconDown);
+        if hBoldFont <> 0 then
+          DeleteObject(hBoldFont);
+        hBoldFont := 0;
         Exit(0);
       end;
   end;
