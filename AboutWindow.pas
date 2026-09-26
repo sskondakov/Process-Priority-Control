@@ -50,8 +50,8 @@ const
     'Программа для автоматической установки приоритетов процессов.'#13#10 +
     #13#10;
   LinesBefore = 4;
-  LinkLines   = 5;  // Lazarus, иконка приложения, постановка, Claude, Free Pascal
-  GapLines    = 2;  // пустые строки перед «Постановка и отладка» и «Компилятор»
+  LinkLines   = 6;  // постановка, Lazarus, иконка, код, Free Pascal, описание
+  GapLines    = 3;  // пустые строки между четырьмя группами ссылок
 
   AuthorUrl: UnicodeString = 'mailto:sergei.s.kondakov@gmail.com';
   ClaudeUrl: UnicodeString = 'https://claude.com/';
@@ -165,15 +165,17 @@ begin
   Inc(Y, LinesBefore * TextH);
 
   // Ссылки открываются в браузере по умолчанию (см. WM_NOTIFY)
+  AddLinkLine(Wnd, Std, X, Y, 'Постановка и отладка: ', 'Сергей Кондаков', AuthorUrl);
+  Inc(Y, TextH + TextH);
   AddLinkLine(Wnd, Std, X, Y, 'Иконки кнопок: ', 'Lazarus ' + LazarusVersion, LazarusUrl);
   Inc(Y, TextH);
   AddLinkLine(Wnd, Std, X, Y, LinkPrefix, LinkCaption, LinkUrl);
   Inc(Y, TextH + TextH);
-  AddLinkLine(Wnd, Std, X, Y, 'Постановка и отладка: ', 'Сергей Кондаков', AuthorUrl);
-  Inc(Y, TextH);
   AddLinkLine(Wnd, Std, X, Y, 'Генерация кода: ', 'Claude Sonnet 5 от Anthropic', ClaudeUrl);
-  Inc(Y, TextH + TextH);
+  Inc(Y, TextH);
   AddLinkLine(Wnd, Std, X, Y, 'Компилятор: ', 'Free Pascal ' + {$I %FPCVERSION%}, FpcUrl);
+  Inc(Y, TextH + TextH);
+  AddLinkLine(Wnd, Std, X, Y, 'Генерация описания: ', 'Claude Sonnet 5 от Anthropic', ClaudeUrl);
 
   Btn := CreateWindowExW(0, 'BUTTON', 'ОК',
     WS_CHILD or WS_VISIBLE or WS_TABSTOP or BS_DEFPUSHBUTTON,
