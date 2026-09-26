@@ -50,3 +50,11 @@ build.cmd
 - Для изменения приоритетов чужих процессов может потребоваться запуск от имени администратора.
 - Приоритет «Реального времени» может сделать систему неотзывчивой — используйте осторожно.
 - Готовый `PPControl.exe` в репозиторий не входит (см. `.gitignore`), его нужно собрать.
+
+## Источники
+
+- Иконки кнопок: [Lazarus 3.2](https://www.lazarus-ide.org/)
+- Иконка приложения: [surang - Flaticon](https://www.flaticon.com/ru/free-icon/checking_3852607)
+- Постановка и отладка: [Сергей Кондаков](mailto:sergei.s.kondakov@gmail.com)
+- Генерация кода: [Claude Sonnet 5 от Anthropic](https://claude.com/)
+- Компилятор: [Free Pascal 3.2.2](https://www.freepascal.org/)

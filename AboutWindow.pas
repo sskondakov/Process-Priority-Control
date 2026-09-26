@@ -48,11 +48,13 @@ const
     'Версия 1.0 (26.09.2026)'#13#10 +
     #13#10 +
     'Программа для автоматической установки приоритетов процессов.'#13#10 +
-    #13#10 +
-    '(c) Сергей Кондаков, 2026'#13#10;  // пустая строка после — в конце
-  LinesBefore = 6;
-  LinkLines   = 3;  // Lazarus, иконка приложения, Free Pascal
-  GapLines    = 1;  // пустая строка перед «Компилятор»
+    #13#10;
+  LinesBefore = 4;
+  LinkLines   = 5;  // Lazarus, иконка приложения, постановка, Claude, Free Pascal
+  GapLines    = 2;  // пустые строки перед «Постановка и отладка» и «Компилятор»
+
+  AuthorUrl: UnicodeString = 'mailto:sergei.s.kondakov@gmail.com';
+  ClaudeUrl: UnicodeString = 'https://claude.com/';
 
   LazarusVersion = '3.2';
   LazarusUrl: UnicodeString = 'https://www.lazarus-ide.org/';
@@ -166,7 +168,11 @@ begin
   AddLinkLine(Wnd, Std, X, Y, 'Иконки кнопок: ', 'Lazarus ' + LazarusVersion, LazarusUrl);
   Inc(Y, TextH);
   AddLinkLine(Wnd, Std, X, Y, LinkPrefix, LinkCaption, LinkUrl);
-  Inc(Y, TextH + GapLines * TextH);
+  Inc(Y, TextH + TextH);
+  AddLinkLine(Wnd, Std, X, Y, 'Постановка и отладка: ', 'Сергей Кондаков', AuthorUrl);
+  Inc(Y, TextH);
+  AddLinkLine(Wnd, Std, X, Y, 'Генерация кода: ', 'Claude Sonnet 5 от Anthropic', ClaudeUrl);
+  Inc(Y, TextH + TextH);
   AddLinkLine(Wnd, Std, X, Y, 'Компилятор: ', 'Free Pascal ' + {$I %FPCVERSION%}, FpcUrl);
 
   Btn := CreateWindowExW(0, 'BUTTON', 'ОК',
@@ -176,10 +182,10 @@ begin
   SendMessageW(Btn, WM_SETFONT, PtrUInt(Std), 1);
 end;
 
-// Открывает только веб-ссылки; адрес берётся из href нажатой ссылки
+// Открывает только веб-ссылки и почтовые адреса; адрес берётся из href нажатой ссылки
 procedure OpenLink(Wnd: HWND; const Url: UnicodeString);
 begin
-  if Copy(Url, 1, 8) = 'https://' then
+  if (Copy(Url, 1, 8) = 'https://') or (Copy(Url, 1, 7) = 'mailto:') then
     ShellExecuteW(Wnd, 'open', PWideChar(Url), nil, nil, SW_SHOWNORMAL);
 end;
 
