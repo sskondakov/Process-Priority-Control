@@ -18,21 +18,21 @@ type
   end;
 
 const
-  // Ключи пишутся в CSV, подписи показываются в таблице. Индекс 0 — «не менять».
-  CpuKeys: array[0..6] of UnicodeString =
-    ('Keep', 'Idle', 'BelowNormal', 'Normal', 'AboveNormal', 'High', 'Realtime');
-  CpuCaptions: array[0..6] of UnicodeString =
-    ('Не менять', 'Низкий (0)', 'Ниже среднего (1)', 'Обычный (2)', 'Выше среднего (3)', 'Высокий (4)', 'Реального времени (5)');
+  // Ключи пишутся в CSV, подписи показываются в таблице. Индекс 0 — «не менять», 1 — «по умолчанию» (приоритет, который был при старте).
+  CpuKeys: array[0..7] of UnicodeString =
+    ('Keep', 'Default', 'Idle', 'BelowNormal', 'Normal', 'AboveNormal', 'High', 'Realtime');
+  CpuCaptions: array[0..7] of UnicodeString =
+    ('Не менять', 'По умолчанию', 'Низкий (0)', 'Ниже среднего (1)', 'Обычный (2)', 'Выше среднего (3)', 'Высокий (4)', 'Реального времени (5)');
 
-  IoKeys: array[0..4] of UnicodeString =
-    ('Keep', 'VeryLow', 'Low', 'Normal', 'High');
-  IoCaptions: array[0..4] of UnicodeString =
-    ('Не менять', 'Очень низкий (0)', 'Низкий (1)', 'Обычный (2)', 'Высокий (3)');
+  IoKeys: array[0..5] of UnicodeString =
+    ('Keep', 'Default', 'VeryLow', 'Low', 'Normal', 'High');
+  IoCaptions: array[0..5] of UnicodeString =
+    ('Не менять', 'По умолчанию', 'Очень низкий (0)', 'Низкий (1)', 'Обычный (2)', 'Высокий (3)');
 
-  MemKeys: array[0..5] of UnicodeString =
-    ('Keep', 'VeryLow', 'Low', 'Medium', 'BelowNormal', 'Normal');
-  MemCaptions: array[0..5] of UnicodeString =
-    ('Не менять', 'Очень низкий (0)', 'Низкий (1)', 'Средний (2)', 'Ниже обычного (3)', 'Обычный (4)');
+  MemKeys: array[0..6] of UnicodeString =
+    ('Keep', 'Default', 'VeryLow', 'Low', 'Medium', 'BelowNormal', 'Normal');
+  MemCaptions: array[0..6] of UnicodeString =
+    ('Не менять', 'По умолчанию', 'Очень низкий (0)', 'Низкий (1)', 'Средний (2)', 'Ниже обычного (3)', 'Обычный (4)');
 
   DefaultIntervalSec = 30;
   MaxIntervalSec     = 3600;

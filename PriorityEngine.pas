@@ -21,12 +21,16 @@ const
   ProcessIoPriority     = 33;  // NtQuery/SetInformationProcess
   ProcessMemoryPriority = 0;   // Get/SetProcessInformation
 
-  // Индекс из CpuKeys -> класс приоритета Windows (0 — «не менять»)
-  CpuClasses: array[0..6] of DWORD = (
-    0, IDLE_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS,
+  // Индекс из CpuKeys -> класс приоритета Windows (0 — «не менять», 1 — «по умолчанию»)
+  CpuClasses: array[0..7] of DWORD = (
+    0, 0, IDLE_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS,
     ABOVE_NORMAL_PRIORITY_CLASS, HIGH_PRIORITY_CLASS, REALTIME_PRIORITY_CLASS);
 
   TH32CS_SNAPPROCESS = $00000002;
+
+  // Пункт «По умолчанию» (индекс в CpuKeys / IoKeys / MemKeys) — вернуть
+  // приоритет, который был у процесса с этим именем при первом обнаружении
+  DefaultIdx = 1;
 
 type
   // Toolhelp32 в FPC для Win64 не поставляется — объявляем нужное сами
@@ -67,6 +71,15 @@ type
     Cpu, Io, Mem: Integer;  // индексы как в правиле, 0 — не менять
   end;
 
+  // Исходные приоритеты процесса, зафиксированные при первом обнаружении.
+  // Хранятся по имени процесса, а не по PID; -1 — значение прочитать не удалось.
+  TOriginal = record
+    Name: UnicodeString;
+    Cpu: Int64;
+    Io: Int64;
+    Mem: Int64;
+  end;
+
 function CreateToolhelp32Snapshot(dwFlags, th32ProcessID: DWORD): THandle; stdcall;
   external 'kernel32.dll' name 'CreateToolhelp32Snapshot';
 function Process32FirstW(hSnapshot: THandle; var lppe: PROCESSENTRY32W): BOOL; stdcall;
@@ -83,6 +96,7 @@ var
   GetProcessInformationFn: TProcInfo;  // kernel32, Windows 8+
   SetProcessInformationFn: TProcInfo;
   ApiLoaded: Boolean = False;
+  Originals: array of TOriginal;
 
 procedure LoadApis;
 var
@@ -101,25 +115,86 @@ end;
 
 // ---------- Чтение и установка приоритетов (сначала проверка, потом запись) ----------
 
-procedure ApplyCpu(H: THandle; Idx: Integer);
+function ReadCpu(H: THandle): Int64;
+var
+  C: DWORD;
+begin
+  C := GetPriorityClass(H);
+  if C = 0 then
+    Result := -1
+  else
+    Result := C;
+end;
+
+function ReadIo(H: THandle): Int64;
+var
+  C: ULONG;
+begin
+  Result := -1;
+  if Assigned(NtQueryInformationProcess) and
+     (NtQueryInformationProcess(H, ProcessIoPriority, @C, SizeOf(C), nil) >= 0) then
+    Result := C;
+end;
+
+function ReadMem(H: THandle): Int64;
+var
+  C: ULONG;
+begin
+  Result := -1;
+  if Assigned(GetProcessInformationFn) and
+     GetProcessInformationFn(H, ProcessMemoryPriority, @C, SizeOf(C)) then
+    Result := C;
+end;
+
+// Исходные приоритеты по имени процесса; при первом обнаружении имени читаются и запоминаются
+function FindOriginal(H: THandle; const Name: PWideChar): Integer;
+var
+  I: Integer;
+begin
+  for I := 0 to High(Originals) do
+    if lstrcmpiW(PWideChar(Originals[I].Name), Name) = 0 then
+      Exit(I);
+  Result := Length(Originals);
+  SetLength(Originals, Result + 1);
+  Originals[Result].Name := UnicodeString(Name);
+  Originals[Result].Cpu := ReadCpu(H);
+  Originals[Result].Io := ReadIo(H);
+  Originals[Result].Mem := ReadMem(H);
+end;
+
+procedure ApplyCpu(H: THandle; Idx: Integer; const Orig: TOriginal);
 var
   Want, Cur: DWORD;
 begin
   if Idx = 0 then
     Exit;
-  Want := CpuClasses[Idx];
+  if Idx = DefaultIdx then
+  begin
+    if Orig.Cpu <= 0 then
+      Exit;
+    Want := DWORD(Orig.Cpu);
+  end
+  else
+    Want := CpuClasses[Idx];
   Cur := GetPriorityClass(H);
   if Cur <> Want then
     SetPriorityClass(H, Want);
 end;
 
-procedure ApplyIo(H: THandle; Idx: Integer);
+procedure ApplyIo(H: THandle; Idx: Integer; const Orig: TOriginal);
 var
   Want, Cur: ULONG;
 begin
   if (Idx = 0) or (NtSetInformationProcess = nil) then
     Exit;
-  Want := ULONG(Idx - 1);  // 0 очень низкий, 1 низкий, 2 обычный, 3 высокий
+  if Idx = DefaultIdx then
+  begin
+    if Orig.Io < 0 then
+      Exit;
+    Want := ULONG(Orig.Io);
+  end
+  else
+    Want := ULONG(Idx - 2);  // 0 очень низкий, 1 низкий, 2 обычный, 3 высокий
   if Assigned(NtQueryInformationProcess) and
      (NtQueryInformationProcess(H, ProcessIoPriority, @Cur, SizeOf(Cur), nil) >= 0) and
      (Cur = Want) then
@@ -127,13 +202,20 @@ begin
   NtSetInformationProcess(H, ProcessIoPriority, @Want, SizeOf(Want));
 end;
 
-procedure ApplyMem(H: THandle; Idx: Integer);
+procedure ApplyMem(H: THandle; Idx: Integer; const Orig: TOriginal);
 var
   Want, Cur: ULONG;
 begin
   if (Idx = 0) or (SetProcessInformationFn = nil) then
     Exit;
-  Want := ULONG(Idx);  // 1 очень низкий ... 5 обычный — совпадает с MEMORY_PRIORITY_*
+  if Idx = DefaultIdx then
+  begin
+    if Orig.Mem < 0 then
+      Exit;
+    Want := ULONG(Orig.Mem);
+  end
+  else
+    Want := ULONG(Idx - 1);  // 1 очень низкий ... 5 обычный — совпадает с MEMORY_PRIORITY_*
   if Assigned(GetProcessInformationFn) and
      GetProcessInformationFn(H, ProcessMemoryPriority, @Cur, SizeOf(Cur)) and
      (Cur = Want) then
@@ -164,6 +246,7 @@ var
   MemMB: Int64;
   Failed: Boolean;
   W: TWanted;
+  O: Integer;
 begin
   if Length(Rules) = 0 then
     Exit;
@@ -216,9 +299,11 @@ begin
 
       if (H <> 0) and not Failed then
       begin
-        ApplyCpu(H, W.Cpu);
-        ApplyIo(H, W.Io);
-        ApplyMem(H, W.Mem);
+        // Исходные значения фиксируются до первого изменения приоритетов
+        O := FindOriginal(H, PE.szExeFile);
+        ApplyCpu(H, W.Cpu, Originals[O]);
+        ApplyIo(H, W.Io, Originals[O]);
+        ApplyMem(H, W.Mem, Originals[O]);
       end;
       if H <> 0 then
         CloseHandle(H);
