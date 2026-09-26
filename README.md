@@ -54,11 +54,8 @@ build.cmd
 ## Источники
 
 - Постановка и отладка: [Сергей Кондаков](mailto:sergei.s.kondakov@gmail.com)
-
 - Иконки кнопок: [Lazarus 3.2](https://www.lazarus-ide.org/)
 - Иконка приложения: [surang - Flaticon](https://www.flaticon.com/ru/free-icon/checking_3852607)
-
 - Генерация кода: [Claude Sonnet 5 от Anthropic](https://claude.com/)
 - Компилятор: [Free Pascal 3.2.2](https://www.freepascal.org/)
-
 - Генерация описания: [Claude Sonnet 5 от Anthropic](https://claude.com/)
