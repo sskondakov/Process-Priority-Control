@@ -7,7 +7,7 @@ program PPControl;
 {$R res\resources.res}  // манифест (стиль comctl32 v6) и иконки; см. res\resources.rc
 
 uses
-  Windows, Messages, ShellAPI, AppStorage, SettingsWindow, AboutWindow, PriorityEngine, ToolbarIcons;
+  Windows, Messages, ShellAPI, AppStorage, SettingsWindow, AboutWindow, AppLog, PriorityEngine, ToolbarIcons;
 
 const
   WM_TRAYICON = WM_USER + 1;
@@ -18,6 +18,7 @@ const
   CMD_AUTOSTART = 1002;
   CMD_EXIT      = 1003;
   CMD_ABOUT     = 1004;
+  CMD_HISTORY   = 1005;
 
   AppName:   UnicodeString = 'Контроль приоритетов процессов';
   MainClass: UnicodeString = 'PPControlHiddenWindow';
@@ -29,16 +30,20 @@ var
   MainWnd: HWND;
   TrayIcon: HICON;
 
-// ---------- Таймер ----------
-
-// (Пере)запуск таймера с текущим интервалом и немедленный проход по процессам
-procedure RestartTimer;
-begin
-  SetTimer(MainWnd, TIMER_ID, UINT(IntervalSec) * 1000, nil);
-  ApplyRules;
-end;
-
 // ---------- Трей ----------
+
+// Подсказка иконки: название и последние события, сколько поместится (максимум 127 символов)
+procedure UpdateTrayTip;
+var
+  Tip: UnicodeString;
+begin
+  Tip := TrayTipText(AppName, Length(Nid.szTip) - 1);
+  if Tip = UnicodeString(PWideChar(@Nid.szTip[0])) then
+    Exit;
+  Nid.uFlags := NIF_TIP;
+  lstrcpynW(@Nid.szTip[0], PWideChar(Tip), Length(Nid.szTip));
+  Shell_NotifyIconW(NIM_MODIFY, @Nid);
+end;
 
 procedure AddTrayIcon(Wnd: HWND);
 begin
@@ -51,13 +56,29 @@ begin
   if TrayIcon = 0 then
     TrayIcon := LoadAppIcon(GetSystemMetrics(SM_CXSMICON));
   Nid.hIcon            := TrayIcon;
-  lstrcpynW(@Nid.szTip[0], PWideChar(AppName), Length(Nid.szTip));
+  lstrcpynW(@Nid.szTip[0], PWideChar(TrayTipText(AppName, Length(Nid.szTip) - 1)), Length(Nid.szTip));
   Shell_NotifyIconW(NIM_ADD, @Nid);
 end;
 
 procedure RemoveTrayIcon;
 begin
   Shell_NotifyIconW(NIM_DELETE, @Nid);
+end;
+
+// ---------- Таймер ----------
+
+// Проход по процессам и обновление подсказки иконки
+procedure RunRules;
+begin
+  ApplyRules;
+  UpdateTrayTip;
+end;
+
+// (Пере)запуск таймера с текущим интервалом и немедленный проход по процессам
+procedure RestartTimer;
+begin
+  SetTimer(MainWnd, TIMER_ID, UINT(IntervalSec) * 1000, nil);
+  RunRules;
 end;
 
 procedure ShowTrayMenu(Wnd: HWND);
@@ -73,6 +94,7 @@ begin
     Flags := Flags or MF_CHECKED;
   AppendMenuW(Menu, Flags, CMD_AUTOSTART, 'Автозагрузка');
   AppendMenuW(Menu, MF_SEPARATOR, 0, nil);
+  AppendMenuW(Menu, MF_STRING, CMD_HISTORY, 'История работы');
   AppendMenuW(Menu, MF_STRING, CMD_ABOUT, 'О программе');
   AppendMenuW(Menu, MF_STRING, CMD_EXIT, 'Выход');
   SetMenuDefaultItem(Menu, CMD_SETTINGS, 0);
@@ -98,7 +120,7 @@ begin
     WM_TIMER:
       begin
         if wParam = TIMER_ID then
-          ApplyRules;
+          RunRules;
         Exit(0);
       end;
     WM_TRAYICON:
@@ -113,6 +135,7 @@ begin
       begin
         case LOWORD(wParam) of
           CMD_SETTINGS:  ShowSettingsWindow;
+          CMD_HISTORY:   OpenLogFile;
           CMD_ABOUT:     ShowAboutWindow(Wnd);
           CMD_AUTOSTART: SetAutostart(not IsAutostartEnabled);
           CMD_EXIT:      DestroyWindow(Wnd);

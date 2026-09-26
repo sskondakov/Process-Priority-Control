@@ -14,7 +14,7 @@ type
     Cpu: Integer;         // индекс в CpuKeys
     Io: Integer;          // индекс в IoKeys
     Mem: Integer;         // индекс в MemKeys
-    MinMemMB: Integer;    // применять, если память процесса >= N МБ; 0 — без фильтра
+    MinMemMB: Integer;    // применять, если память процесса >= N Мбайт; 0 — без фильтра
   end;
 
 const

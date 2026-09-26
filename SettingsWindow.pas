@@ -395,7 +395,7 @@ begin
   AddColumn(COL_CPU,  130, 'Приоритет CPU');
   AddColumn(COL_IO,   110, 'Приоритет ввода-вывода');
   AddColumn(COL_MEM,  130, 'Приоритет памяти');
-  AddColumn(COL_FILT, 200, 'Фильтр: память ≥ МБ (0 — любая)');
+  AddColumn(COL_FILT, 200, 'Фильтр: память ≥ Мбайт (0 — любая)');
 
   hLabel := CreateWindowExW(0, 'STATIC', 'Интервал опроса:',
     WS_CHILD or WS_VISIBLE, 0, 0, 0, 0, Wnd, ID_LABEL, HINSTANCE, nil);
