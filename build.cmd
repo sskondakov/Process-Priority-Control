@@ -21,3 +21,8 @@ del /q *.o *.ppu *.obj *.a 2>nul
 
 if not %RESULT%==0 exit /b %RESULT%
 echo Done: PPControl.exe
+
+rem Archive with the ready program (committed to the repository instead of the exe)
+powershell -NoProfile -Command "Compress-Archive -Path PPControl.exe -DestinationPath PPControl.zip -Force"
+if errorlevel 1 exit /b 1
+echo Done: PPControl.zip
