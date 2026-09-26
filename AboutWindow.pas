@@ -165,7 +165,7 @@ begin
   Inc(Y, LinesBefore * TextH);
 
   // Ссылки открываются в браузере по умолчанию (см. WM_NOTIFY)
-  AddLinkLine(Wnd, Std, X, Y, 'Постановка и отладка: ', 'Сергей Кондаков', AuthorUrl);
+  AddLinkLine(Wnd, Std, X, Y, 'Постановка и тестирование: ', 'Сергей Кондаков', AuthorUrl);
   Inc(Y, TextH + TextH);
   AddLinkLine(Wnd, Std, X, Y, 'Иконки кнопок: ', 'Lazarus ' + LazarusVersion, LazarusUrl);
   Inc(Y, TextH);
