@@ -63,3 +63,7 @@ build.cmd
 - Генерация кода: [Claude Sonnet 5 от Anthropic](https://claude.com/)
 - Компилятор: [Free Pascal 3.2.2](https://www.freepascal.org/)
 - Генерация описания: [Claude Sonnet 5 от Anthropic](https://claude.com/)
+
+## Лицензия
+
+[GNU General Public License v3.0](LICENSE)
